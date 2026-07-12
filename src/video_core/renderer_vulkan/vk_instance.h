@@ -89,6 +89,16 @@ public:
         return features.depthBounds;
     }
 
+    /// Returns true if query pools can be reset from the host.
+    bool IsHostQueryResetSupported() const {
+        return vk12_features.hostQueryReset;
+    }
+
+    /// Returns true when VK_EXT_conditional_rendering is supported
+    bool IsConditionalRenderingSupported() const {
+        return conditional_rendering;
+    }
+
     /// Returns true if 16-bit floats are supported in shaders
     bool IsShaderFloat16Supported() const {
         return vk12_features.shaderFloat16;
@@ -503,6 +513,8 @@ private:
     bool portability_subset{};
     bool maintenance_8{};
     bool attachment_feedback_loop{};
+    bool image_2d_view_of_3d{};
+    bool conditional_rendering{};
     bool supports_memory_budget{};
     u64 total_memory_budget{};
     std::vector<size_t> valid_heaps;
