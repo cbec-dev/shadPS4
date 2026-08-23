@@ -163,6 +163,7 @@ static ConfigEntry<bool> isMotionControlsEnabled(true);
 static ConfigEntry<bool> useUnifiedInputConfig(true);
 static ConfigEntry<string> defaultControllerID("");
 static ConfigEntry<bool> backgroundControllerInput(false);
+static std::vector<PadClassOverride> padClassOverrides = {};
 
 // Audio
 static ConfigEntry<string> micDevice("Default Device");
@@ -425,6 +426,10 @@ int getSpecialPadClass(int pad) {
             return specialPadClass4.get();
     }
     return specialPadClass1.get();
+}
+
+const std::vector<PadClassOverride>& getPadClassOverrides() {
+    return padClassOverrides;
 }
 
 bool getIsMotionControlsEnabled() {
@@ -718,6 +723,10 @@ void setSpecialPadClass(int type) {
     specialPadClass1.base_value = type;
 }
 
+void setPadClassOverrides(const std::vector<PadClassOverride>& overrides) {
+    padClassOverrides = overrides;
+}
+
 void setIsMotionControlsEnabled(bool use, bool is_game_specific) {
     isMotionControlsEnabled.set(use, is_game_specific);
 }
@@ -926,6 +935,26 @@ void load(const std::filesystem::path& path, bool is_game_specific) {
         isMotionControlsEnabled.setFromToml(input, "isMotionControlsEnabled", is_game_specific);
         useUnifiedInputConfig.setFromToml(input, "useUnifiedInputConfig", is_game_specific);
         backgroundControllerInput.setFromToml(input, "backgroundControllerInput", is_game_specific);
+
+        const auto override_ids =
+            toml::find_or<std::vector<std::string>>(input, "padClassOverrideIds", {});
+        const auto override_classes =
+            toml::find_or<std::vector<int>>(input, "padClassOverrideClasses", {});
+        padClassOverrides.clear();
+        for (size_t i = 0; i < override_ids.size() && i < override_classes.size(); i++) {
+            const auto& id = override_ids[i];
+            const auto colon = id.find(':');
+            if (colon == std::string::npos) {
+                continue;
+            }
+            try {
+                u16 vendor_id = static_cast<u16>(std::stoul(id.substr(0, colon), nullptr, 16));
+                u16 product_id = static_cast<u16>(std::stoul(id.substr(colon + 1), nullptr, 16));
+                padClassOverrides.push_back({vendor_id, product_id, override_classes[i]});
+            } catch (const std::exception&) {
+                continue;
+            }
+        }
     }
 
     if (data.contains("Audio")) {
@@ -1203,6 +1232,16 @@ void save(const std::filesystem::path& path, bool is_game_specific) {
         data["Input"]["specialPadClass2"] = specialPadClass2.base_value;
         data["Input"]["specialPadClass3"] = specialPadClass3.base_value;
         data["Input"]["specialPadClass4"] = specialPadClass4.base_value;
+
+        std::vector<std::string> override_ids;
+        std::vector<int> override_classes;
+        for (const auto& override : padClassOverrides) {
+            override_ids.push_back(fmt::format("{:04x}:{:04x}", override.vendor_id,
+                                                override.product_id));
+            override_classes.push_back(override.pad_class);
+        }
+        data["Input"]["padClassOverrideIds"] = override_ids;
+        data["Input"]["padClassOverrideClasses"] = override_classes;
         data["Input"]["useUnifiedInputConfig"] = useUnifiedInputConfig.base_value;
         data["GPU"]["internalScreenWidth"] = internalScreenWidth.base_value;
         data["GPU"]["internalScreenHeight"] = internalScreenHeight.base_value;
@@ -1308,6 +1347,7 @@ void setDefaultValues(bool is_game_specific) {
         specialPadClass2.base_value = 1;
         specialPadClass3.base_value = 1;
         specialPadClass4.base_value = 1;
+        padClassOverrides.clear();
         useUnifiedInputConfig.base_value = true;
         controllerCustomColorRGB[0] = 0;
         controllerCustomColorRGB[1] = 0;

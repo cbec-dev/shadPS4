@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstring>
 
 using s8 = std::int8_t;
 using s16 = std::int16_t;

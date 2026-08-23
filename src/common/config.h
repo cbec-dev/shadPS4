@@ -21,6 +21,12 @@ struct GameInstallDir {
     bool enabled;
 };
 
+struct PadClassOverride {
+    u16 vendor_id;
+    u16 product_id;
+    int pad_class; // OrbisPadDeviceClass value; 0 = Standard (force-disable autodetect)
+};
+
 enum HideCursorState : int { Never, Idle, Always };
 
 void load(const std::filesystem::path& path, bool is_game_specific = false);
@@ -114,6 +120,8 @@ void setUseSpecialPad(bool use);
 bool getUseSpecialPad(int pad);
 void setSpecialPadClass(int type);
 int getSpecialPadClass(int pad);
+void setPadClassOverrides(const std::vector<PadClassOverride>& overrides);
+const std::vector<PadClassOverride>& getPadClassOverrides();
 bool getPSNSignedIn();
 void setPSNSignedIn(bool sign, bool is_game_specific = false);
 bool patchShaders(); // no set

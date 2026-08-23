@@ -246,8 +246,15 @@ void GameController::SetTouchpadState(int touchIndex, bool touchDown, float x, f
 int GameController::GetPadClassFromSDL() {
     if (m_sdl_gamepad) {
         auto joystick = SDL_GetGamepadJoystick(m_sdl_gamepad);
+        u16 vendor_id = SDL_GetJoystickVendor(joystick);
+        u16 product_id = SDL_GetJoystickProduct(joystick);
+        for (const auto& override : Config::getPadClassOverrides()) {
+            if (override.vendor_id == vendor_id && override.product_id == product_id) {
+                return override.pad_class;
+            }
+        }
+
         auto joystick_type = SDL_GetJoystickType(joystick);
-        auto joystick_name = SDL_GetJoystickName(joystick);
         switch (joystick_type) {
             case SDL_JOYSTICK_TYPE_GUITAR:
                 return 1;
@@ -309,6 +316,12 @@ void GameControllers::TryOpenSDLControllers(GameControllers& controllers) {
                 controllers[i]->m_sdl_gamepad = pad;
                 LOG_INFO(Input, "Gamepad registered for slot {}! Handle: {}", i,
                          SDL_GetGamepadID(pad));
+                {
+                    auto joystick = SDL_GetGamepadJoystick(pad);
+                    LOG_INFO(Input, "Gamepad '{}' VID:PID = {:04x}:{:04x}",
+                             SDL_GetJoystickName(joystick), SDL_GetJoystickVendor(joystick),
+                             SDL_GetJoystickProduct(joystick));
+                }
                 controllers[i]->user_id = i + 1;
                 slot_taken[i] = true;
                 controllers[i]->player_index = i;
